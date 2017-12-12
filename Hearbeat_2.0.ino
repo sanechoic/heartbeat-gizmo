@@ -2,38 +2,42 @@
 #include <seeed_pwm.h>
 #include <FastLED.h>
 
-#define NUM_LEDS 56
-#define DATA_PIN 7
+#define NUM_LEDS 56 // Number of LEDs in the strip
+#define DATA_PIN 7  // LED strip control pin
 
-CRGB leds[NUM_LEDS];
+CRGB leds[NUM_LEDS]; // 
 
 
-int hrPin = A0;
-int potPin = A1;
-const int enPin = 6;
-int ledPin = 13;
-volatile int bpm = 0;
-int bright = 0;
-int hue = 25;
-int saturation = 255;
-//int x = 2;
-int accel = 0;
-int buttonState = 0;
+// Control Pin Variables
+const int hrPin = A0; // Heart rate sensor pin: Analog Input
+const int potPin = A1; // Potentiometer pin: Analog Output
+const int enPin = 6; // Button pin: Digital Input
 
-MotorDriver motor;
+// Initialise variables
+volatile int bpm = 0; // PWM duty cycle
+int bright = 0; // LED strip brightness
+int hue = 25; // LED strip hue
+int saturation = 255; // LED strip saturation
+int buttonState = 0; // Button state
+
+MotorDriver motor; // Initalise object using library
 
 void setup()
 {
-  Serial.begin(9600);
-  // initialize
-  motor.begin();
+  Serial.begin(9600); 
+
+  
+  motor.begin(); // Initalise motor
+  FastLED.addLeds<NEOPIXEL, DATA_PIN>(leds, NUM_LEDS); // Initialise LED strip
+
+  
+  // Initialise control pins
   pinMode(hrPin, INPUT);
   pinMode(potPin, INPUT);
   pinMode(enPin, INPUT);
-  pinMode(ledPin, OUTPUT);
-  FastLED.addLeds<NEOPIXEL, DATA_PIN>(leds, NUM_LEDS);
+  
 
-  for (int i = 0; i < NUM_LEDS; i = i + 1){
+  for (int i = 0; i < NUM_LEDS; i = i + 1){  // Turn on LEDs one by one
     leds[i] = CRGB(255,0,0); 
     FastLED.show();
     delay(50);
@@ -44,38 +48,21 @@ void setup()
 
 void loop()
 {
-  bpm = 65;
-  /*//bpm = analogRead(hrPin);
-  bpm = map(analogRead(hrPin), 0, 627, 30, 100);
-  //bpm = map(analogRead(potPin), 0, 1023, 30, 100);
-  bright = map(analogRead(potPin), 0, 1023, 0, 255);
- 
+  bpm = 65; // PWM which results in BPM of ~30
   
-  FastLED.showColor(CHSV(15, 255, bright)); 
-  //Serial.println(hue);
+  buttonState = digitalRead(enPin); // Check button position
   
- 
-  /*Serial.print("brightness: ");
-  Serial.println(bright);
-  Serial.print("Button: ");
-  Serial.println(buttonState);
-  Serial.println(analogRead(hrPin));*/
-  
-  buttonState = digitalRead(enPin);
-  
-  motor.speed(0, bpm);
+  motor.speed(0, bpm); // Motor 0 has a PWM = bpm
   FastLED.showColor(CHSV(hue, saturation, 50));
   
   
-  while (buttonState == HIGH){
+  while (buttonState == HIGH){ // When button is pressed
     Serial.println(bpm);
-    if (bpm == 65){
-      bpm = map(analogRead(hrPin), 0, 627, 65, 100);
-      //bpm = map(analogRead(potPin), 0, 1023, 65, 100);
-      bright = map(bpm, 0, 100, 50, 150);
-      //bright = map(analogRead(potPin), 0, 1023, 0, 255);
+    if (bpm == 65){ // If heartbeat has not been measured
+      bpm = map(analogRead(hrPin), 0, 627, 65, 100); // Read value from heart rate sensor and map the values to effective PWM range
+      bright = map(bpm, 0, 100, 50, 150); // Map the PWM values to LED brightness
 
-      for (int i = 65; i < bpm; i = i + 1){
+      for (int i = 65; i < bpm; i = i + 1){  // Gradually increase Motor PWM and LED brightness from inital values to values from heart rate sensor
         motor.speed(0, i);
         bright = map(i, 65, bpm, 50, 150);
         FastLED.showColor(CHSV(hue, saturation, bright));
@@ -84,17 +71,10 @@ void loop()
        
       }
     } 
-    /*Serial.print("brightness");
-    Serial.println(bright);
-    /*Serial.print("BPM:");   
-    Serial.print(bpm);
-    Serial.print(' ');
-    Serial.print("Button: ");
-    Serial.println(buttonState);*/
-    delay(500);
-    buttonState = digitalRead(enPin);
-    if (buttonState == LOW){
-      for (int i = bpm; i > 65; i = i - 1){
+
+    buttonState = digitalRead(enPin); // Check button state
+    if (buttonState == LOW){ // If button is released
+      for (int i = bpm; i > 65; i = i - 1){ // Gradually reduce motor PWM and brightness back to inital values
         motor.speed(0, i);
         bright = map(i, 65, bpm, 50, 150);
         FastLED.showColor(CHSV(hue, saturation, bright));
@@ -103,8 +83,6 @@ void loop()
       }
     }
   }
-
-  delay(100);
   
     
 }
